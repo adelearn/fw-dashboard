@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard FAILWA – Q4 2026</title>
+<style>
+  /* ===== YOUR BRAND: change these 5 colors ===== */
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --text:#1d2330;
+    --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb; --bar:#60a5fa;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0f1420; --card:#171e2e; --text:#e6e9f2;
+           --muted:#9aa3b5; --line:#2a3347; --accent:#60a5fa; --bar:#3b82f6; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:16px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       background:var(--bg);color:var(--text)}
+  h1{font-size:22px;margin:8px 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+  .filters label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  select{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;
+         background:var(--card);color:var(--text);font-size:14px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .kpi .n{font-size:34px;font-weight:700;color:var(--accent)}
+  .kpi .l{color:var(--muted);font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card h2{font-size:15px;margin:0 0 12px}
+  .row{display:grid;grid-template-columns:1.2fr 2fr 48px;gap:8px;align-items:center;font-size:13px;margin-bottom:8px}
+  .track{background:var(--line);border-radius:4px;height:12px;overflow:hidden}
+  .fill{background:var(--bar);height:100%;border-radius:4px;transition:width .3s}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .msg{color:var(--muted);font-size:13px}
+  .error{color:#dc2626}
+  button{margin-top:8px;padding:8px 14px;border:0;border-radius:8px;background:var(--accent);color:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+
+<h1>Dashboard FAILWA – Q4 2026</h1>
+<div class="sub" id="status">Memuat data…</div>
+
+<div class="filters">
+  <div><label for="fArea">Service Area</label><select id="fArea"></select></div>
+  <div><label for="fPer">Periode Order</label><select id="fPer"></select></div>
+  <div><label for="fUic">UIC</label><select id="fUic"></select></div>
+  <div><label for="fVal">Validasi TIF</label><select id="fVal"></select></div>
+  <div><label for="fKom">Komitmen</label><select id="fKom"></select></div>
+</div>
+
+<div class="kpi">
+  <div class="n" id="total">–</div>
+  <div class="l">Total order (sesuai filter)</div>
+</div>
+
+<div class="grid">
+  <div class="card"><h2>By Service Area</h2><div id="byArea"></div></div>
+  <div class="card"><h2>By Failure Category</h2><div id="byCat"></div></div>
+  <div class="card"><h2>By Validasi TIF</h2><div id="byVal"></div></div>
+</div>
+<button onclick="load()">Muat ulang data</button>
+
+<script>
+  // ===== 1. PASTE YOUR APPS SCRIPT URL (with ?key=...) HERE =====
+  const API_URL = "https://script.google.com/macros/s/AKfycbxn-TgFlyNX6YmiuLoXtQo2bc5aP5R1DM3PaaYbCNwGytow3GvWU5pVwZznCn6NJ8pkZg/exec?key=adelearned";
+
+  const LABEL_ALL = "All";
+  const cfg = [
+    { id:"fArea", key:"a", label:"Service Area" },
+    { id:"fPer",  key:"p", label:"Periode Order" },
+    { id:"fUic",  key:"u", label:"UIC" },
+    { id:"fVal",  key:"v", label:"Validasi TIF" },
+    { id:"fKom",  key:"k", label:"Komitmen" }
+  ];
+  let DATA = [];
+
+  async function load(){
+    const status = document.getElementById("status");
+    status.textContent = "Memuat data…";
+    status.className = "sub";
+    try{
+      const res = await fetch(API_URL, { cache: "no-store" });
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      if(text === "forbidden") throw new Error("kunci (key) salah");
+      DATA = JSON.parse(text);
+      status.textContent = "Diperbarui " + new Date().toLocaleString("id-ID") + " · " + DATA.length + " baris";
+      buildFilters();
+      render();
+    }catch(err){
+      status.textContent = "Gagal memuat data: " + err.message;
+      status.className = "sub error";
+    }
+  }
+
+  function buildFilters(){
+    cfg.forEach(c => {
+      const sel = document.getElementById(c.id);
+      const previous = sel.value || LABEL_ALL;
+      sel.innerHTML = "";
+      sel.add(new Option(LABEL_ALL, LABEL_ALL));
+      [...new Set(DATA.map(r => r[c.key]))].sort().forEach(v => sel.add(new Option(v, v)));
+      sel.value = [...sel.options].some(o => o.value === previous) ? previous : LABEL_ALL;
+      sel.onchange = render;
+    });
+  }
+
+  function filtered(excludeKey){
+    return DATA.filter(r => cfg.every(c => {
+      if(c.key === excludeKey) return true;
+      const v = document.getElementById(c.id).value;
+      return v === LABEL_ALL || r[c.key] === v;
+    }));
+  }
+
+  function count(rows, key){
+    const m = {};
+    rows.forEach(r => m[r[key]] = (m[r[key]] || 0) + 1);
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  }
+
+  function bars(el, items, total){
+    el.innerHTML = items.length ? items.map(([name, n]) => {
+      const pct = total ? (n / total * 100) : 0;
+      return `<div class="row"><div>${name}</div>
+              <div class="track"><div class="fill" style="width:${pct.toFixed(1)}%"></div></div>
+              <div class="num">${n}</div></div>`;
+    }).join("") : '<div class="msg">Tidak ada data.</div>';
+  }
+
+  function render(){
+    const all = filtered(null);
+    document.getElementById("total").textContent = all.length.toLocaleString("id-ID");
+    const areaRows = filtered("a");
+    bars(document.getElementById("byArea"), count(areaRows, "a"), areaRows.length);
+    bars(document.getElementById("byCat"), count(all, "c"), all.length);
+    const valRows = filtered("v");
+    bars(document.getElementById("byVal"), count(valRows, "v"), valRows.length);
+  }
+
+  load();
+</script>
+</body>
+</html>
