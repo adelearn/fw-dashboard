@@ -49,7 +49,7 @@
   <div><label for="fUic">UIC</label><select id="fUic"></select></div>
   <div><label for="fVal">Validasi TIF</label><select id="fVal"></select></div>
   <div><label for="fKom">Komitmen</label><select id="fKom"></select></div>
-  <div><label for="fStat">Progress Order</label><select id="fStat"></select></div>
+  <div><label for="fStat">STO</label><select id="fStat"></select></div>
 </div>
 
 <div class="kpi">
@@ -66,7 +66,7 @@
 
 <script>
   // ===== 1. PASTE YOUR APPS SCRIPT URL (with ?key=...) HERE =====
-  const API_URL = "https://script.google.com/macros/s/AKfycbxn-TgFlyNX6YmiuLoXtQo2bc5aP5R1DM3PaaYbCNwGytow3GvWU5pVwZznCn6NJ8pkZg/exec?key=adelearned";
+  const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
 
   const LABEL_ALL = "All";
   const cfg = [
@@ -75,7 +75,7 @@
     { id:"fUic",  key:"u", label:"UIC" },
     { id:"fVal",  key:"v", label:"Validasi TIF" },
     { id:"fKom",  key:"k", label:"Komitmen" },
-    { id:"fStat", key:"s", label:"Progress Order" }
+    id:"fStat",  key:"s", label:"Progress Order"
   ];
   let DATA = [];
 
